@@ -1,4 +1,5 @@
 import { useRecorder } from '../hooks/useRecorder';
+import { useState } from 'react';
 
 const getBadge = (status: string) => {
     switch (status) {
@@ -30,6 +31,10 @@ export default function RecorderPanel() {
     const isRecording = status === 'recording';
     const canStart = ['idle', 'success', 'error'].includes(status);
     const canStop = ['recording'].includes(status);
+    const [transcriptionText, setTranscriptionText] = useState<string | null>(null);
+    const [transcriptionError, setTranscriptionError] = useState<string | null>(null);
+    const [isTranscribing, setIsTranscribing] = useState(false);
+
 
     return (
         <section className="rounded-3xl border border-zinc-800 bg-zinc-900 p-6 shadow-xl">
@@ -71,7 +76,48 @@ export default function RecorderPanel() {
                         녹음 중지
                     </button>
                 </div>
+                <button
+                    disabled={!lastSavedPath || isTranscribing}
+                    onClick={async () => {
+                        if (!lastSavedPath) return;
 
+                        try {
+                            setIsTranscribing(true);
+                            setTranscriptionError(null);
+                            setTranscriptionText(null);
+
+                            const result = await window.RecordNote.startTranscription({
+                                sourceFilePath: lastSavedPath,
+                            });
+
+                            console.log('transcription result:', result);
+
+                            if (!result.success) {
+                                throw new Error(result.error || '전사 실패');
+                            }
+
+                            setTranscriptionText(result.text ?? '');
+                        } catch (error) {
+                            setTranscriptionError(error instanceof Error ? error.message : String(error));
+                        } finally {
+                            setIsTranscribing(false);
+                        }
+                    }}
+                    className="rounded-2xl border border-zinc-700 px-5 py-3 font-medium text-zinc-200 transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                    {isTranscribing ? '전사 중...' : '전사 시작'}
+                    {transcriptionError && (
+                        <div className="mt-3 break-all text-amber-300">
+                            전사 오류: {transcriptionError}
+                        </div>
+                    )}
+
+                    {transcriptionText && (
+                        <div className="mt-3 rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-sm text-zinc-200 whitespace-pre-wrap">
+                            {transcriptionText}
+                        </div>
+                    )}
+                </button>
                 <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4 text-sm text-zinc-400">
                     {isRecording && <div>현재 마이크 녹음 중이다.</div>}
                     {!isRecording && lastSavedPath && (

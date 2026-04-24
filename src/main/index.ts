@@ -4,6 +4,7 @@ import type { WorkspaceState } from '../shared/types/workspace';
 import { ensureWorkspace } from './services/workspace.service';
 import { registerRecorderIpc } from './ipc/recorder.ipc';
 import { IPC_CHANNELS } from '../shared/constants/ipc';
+import { registerTranscriptionIpc } from './ipc/transcription.ipc';
 
 
 const createWindow = () => {
@@ -37,8 +38,10 @@ const registerWorkspaceIpc = () => {
 app.whenReady().then(async () => {
     await ensureWorkspace();
 
+    // Register IPC handlers
     registerRecorderIpc();
     registerWorkspaceIpc();
+    registerTranscriptionIpc();
 
     createWindow();
 

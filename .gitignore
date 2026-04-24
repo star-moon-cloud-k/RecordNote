@@ -91,6 +91,7 @@ typings/
 # Electron-Forge
 out/
 
+resources/lib/*
 resources/bin/ffmpeg
 resources/bin/whisper-*
 resources/models/*

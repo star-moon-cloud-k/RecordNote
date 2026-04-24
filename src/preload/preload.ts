@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type { WorkspaceState } from '../shared/types/workspace';
 import { IPC_CHANNELS } from '../shared/constants/ipc';
 import type { SaveRecordingInput, SaveRecordingOutput } from '../shared/types/recorder';
+import { StartTranscriptionInput, StartTranscriptionOutput } from '../shared/types/transcription';
 
 contextBridge.exposeInMainWorld('RecordNote', {
     getWorkspaceState: async (): Promise<WorkspaceState> => {
@@ -10,5 +11,11 @@ contextBridge.exposeInMainWorld('RecordNote', {
 
     saveRecording: async (payload: SaveRecordingInput): Promise<SaveRecordingOutput> => {
         return ipcRenderer.invoke(IPC_CHANNELS.RECORDING_SAVE, payload);
-    }
+    },
+
+    startTranscription: async (
+        payload: StartTranscriptionInput,
+    ): Promise<StartTranscriptionOutput> => {
+        return ipcRenderer.invoke(IPC_CHANNELS.TRANSCRIPTION_START, payload);
+    },
 });

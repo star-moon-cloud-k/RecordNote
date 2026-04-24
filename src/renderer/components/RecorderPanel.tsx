@@ -5,7 +5,7 @@ export default function RecorderPanel() {
                 <div>
                     <h2 className="text-xl font-semibold">녹음 컨트롤</h2>
                     <p className="mt-2 text-sm text-zinc-400">
-                        마이크 입력을 받아 회의 녹음을 시작하고 종료한다.
+                        다음 단계에서 실제 마이크 녹음 기능을 연결한다.
                     </p>
                 </div>
 
@@ -30,7 +30,7 @@ export default function RecorderPanel() {
                 </div>
 
                 <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4 text-sm text-zinc-400">
-                    아직 녹음이 시작되지 않았다.
+                    작업 디렉터리 초기화 후, 여기에 녹음 상태를 연결할 예정이다.
                 </div>
             </div>
         </section>

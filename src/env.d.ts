@@ -8,6 +8,7 @@ import type {
     SummarizeTranscriptInput,
     SummarizeTranscriptOutput,
 } from './shared/types/summarization';
+import type { ClipboardWriteResult } from './shared/types/clipboard';
 import type {
     DeleteFileResult,
     GetAudioFileUrlResult,
@@ -28,9 +29,11 @@ declare global {
             summarizeTranscript: (payload: SummarizeTranscriptInput) => Promise<SummarizeTranscriptOutput>;
             listFiles: () => Promise<ListFilesResult>;
             readFile: (filePath: string) => Promise<ReadFileResult>;
+            readSubtitleForRecording: (recordingPath: string) => Promise<ReadFileResult>;
             renameFile: (payload: RenameFileInput) => Promise<RenameFileResult>;
             deleteFile: (filePath: string) => Promise<DeleteFileResult>;
             getAudioFileUrl: (filePath: string) => Promise<GetAudioFileUrlResult>;
+            copyToClipboard: (text: string) => Promise<ClipboardWriteResult>;
         };
     }
 }

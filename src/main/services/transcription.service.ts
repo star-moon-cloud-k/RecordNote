@@ -109,14 +109,16 @@ export const startTranscription = async (
 
         const baseName = getBaseName(input.sourceFilePath);
         const wavFilePath = path.join(workspace.paths.processingDir, `${baseName}.wav`);
-        const transcriptBasePath = path.join(workspace.paths.transcriptsDir, baseName);
-        const transcriptFilePath = `${transcriptBasePath}.txt`;
+        const tempTranscriptBasePath = path.join(workspace.paths.processingDir, `${baseName}_transcript`);
+        const transcriptFilePath = path.join(workspace.paths.transcriptsDir, `${baseName}.txt`);
+        const transcriptSrtFilePath = path.join(workspace.paths.subtitlesDir, `${baseName}.srt`);
         const language = 'ko';
 
         console.log('[transcription] output paths');
         console.log('  wavFilePath:', wavFilePath);
-        console.log('  transcriptBasePath:', transcriptBasePath);
+        console.log('  tempTranscriptBasePath:', tempTranscriptBasePath);
         console.log('  transcriptFilePath:', transcriptFilePath);
+        console.log('  transcriptSrtFilePath:', transcriptSrtFilePath);
 
         await runCommand(ffmpegBin, [
             '-y',
@@ -143,14 +145,27 @@ export const startTranscription = async (
                 '-l',
                 language,
                 '-otxt',
+                '-osrt',
                 '-of',
-                transcriptBasePath,
+                tempTranscriptBasePath,
             ],
             {
                 DYLD_LIBRARY_PATH: whisperLibDir,
             },
         );
+
+        const tempTranscriptFilePath = `${tempTranscriptBasePath}.txt`;
+        const tempTranscriptSrtFilePath = `${tempTranscriptBasePath}.srt`;
+
+        await fs.access(tempTranscriptFilePath);
+        await fs.access(tempTranscriptSrtFilePath);
+        await fs.rm(transcriptFilePath, { force: true });
+        await fs.rm(transcriptSrtFilePath, { force: true });
+        await fs.rename(tempTranscriptFilePath, transcriptFilePath);
+        await fs.rename(tempTranscriptSrtFilePath, transcriptSrtFilePath);
+
         await fs.access(transcriptFilePath);
+        await fs.access(transcriptSrtFilePath);
 
         const text = await fs.readFile(transcriptFilePath, 'utf-8');
 
@@ -161,6 +176,7 @@ export const startTranscription = async (
             success: true,
             wavFilePath,
             transcriptFilePath,
+            transcriptSrtFilePath,
             text,
         };
     } catch (error) {

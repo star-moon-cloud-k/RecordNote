@@ -4,6 +4,7 @@ import { IPC_CHANNELS } from '../shared/constants/ipc';
 import type { SaveRecordingInput, SaveRecordingOutput } from '../shared/types/recorder';
 import type { StartTranscriptionInput, StartTranscriptionOutput } from '../shared/types/transcription';
 import type { SummarizeTranscriptInput, SummarizeTranscriptOutput } from '../shared/types/summarization';
+import type { ClipboardWriteResult } from '../shared/types/clipboard';
 import type {
     DeleteFileResult,
     GetAudioFileUrlResult,
@@ -38,6 +39,12 @@ contextBridge.exposeInMainWorld('RecordNote', {
     readFile: async (filePath: string): Promise<ReadFileResult> => {
         return ipcRenderer.invoke(IPC_CHANNELS.FILES_READ, filePath);
     },
+    readSubtitleForRecording: async (recordingPath: string): Promise<ReadFileResult> => {
+        return ipcRenderer.invoke(
+            IPC_CHANNELS.FILES_READ_SUBTITLE_FOR_RECORDING,
+            recordingPath,
+        );
+    },
     renameFile: async (payload: RenameFileInput): Promise<RenameFileResult> => {
         return ipcRenderer.invoke(IPC_CHANNELS.FILES_RENAME, payload);
     },
@@ -46,5 +53,8 @@ contextBridge.exposeInMainWorld('RecordNote', {
     },
     getAudioFileUrl: async (filePath: string): Promise<GetAudioFileUrlResult> => {
         return ipcRenderer.invoke(IPC_CHANNELS.FILES_GET_AUDIO_URL, filePath);
+    },
+    copyToClipboard: async (text: string): Promise<ClipboardWriteResult> => {
+        return ipcRenderer.invoke(IPC_CHANNELS.CLIPBOARD_WRITE_TEXT, { text });
     },
 });

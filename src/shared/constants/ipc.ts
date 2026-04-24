@@ -8,7 +8,10 @@ export const IPC_CHANNELS = {
 
     FILES_LIST: 'files:list',
     FILES_READ: 'files:read',
+    FILES_READ_SUBTITLE_FOR_RECORDING: 'files:read-subtitle-for-recording',
     FILES_RENAME: 'files:rename',
     FILES_DELETE: 'files:delete',
     FILES_GET_AUDIO_URL: 'files:get-audio-url',
+
+    CLIPBOARD_WRITE_TEXT: 'clipboard:write-text',
 } as const;

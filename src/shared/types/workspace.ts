@@ -3,6 +3,7 @@ export type WorkspacePaths = {
     recordingsDir: string;
     processingDir: string;
     transcriptsDir: string;
+    subtitlesDir: string;
     summariesDir: string;
     logsDir: string;
     modelsDir: string;

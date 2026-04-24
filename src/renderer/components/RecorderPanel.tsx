@@ -52,6 +52,7 @@ export default function RecorderPanel({ onFilesChanged }: Props) {
     const [summaryError, setSummaryError] = useState<string | null>(null);
     const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
     const [summaryFilePath, setSummaryFilePath] = useState<string | null>(null);
+    const [copyMessage, setCopyMessage] = useState<string | null>(null);
 
     const isRecording = status === 'recording';
     const canStart =
@@ -66,9 +67,25 @@ export default function RecorderPanel({ onFilesChanged }: Props) {
             ? 'transcribing'
             : status;
 
+    const copyText = async (text: string, label: string) => {
+        const result = await window.RecordNote.copyToClipboard(text);
+        setCopyMessage(result.success ? `${label}을(를) 복사했다.` : `복사 실패: ${result.error ?? '알 수 없는 오류'}`);
+    };
+
+    const copyFileContent = async (filePath: string, label: string) => {
+        const readResult = await window.RecordNote.readFile(filePath);
+        if (!readResult.success || !readResult.content) {
+            setCopyMessage(`복사 실패: ${readResult.error ?? '파일 내용을 읽지 못했다.'}`);
+            return;
+        }
+
+        await copyText(readResult.content, label);
+    };
+
     const runSummarization = async (
         text: string,
         transcriptFilePath?: string | null,
+        transcriptSrtFilePath?: string | null,
     ) => {
         try {
             setIsSummarizing(true);
@@ -79,6 +96,7 @@ export default function RecorderPanel({ onFilesChanged }: Props) {
             const result = await window.RecordNote.summarizeTranscript({
                 transcriptText: text,
                 transcriptFilePath: transcriptFilePath ?? undefined,
+                transcriptSrtFilePath: transcriptSrtFilePath ?? undefined,
             });
 
             if (!result.success || !result.data) {
@@ -115,13 +133,14 @@ export default function RecorderPanel({ onFilesChanged }: Props) {
 
             const finalText = result.text ?? '';
             const finalTranscriptPath = result.transcriptFilePath ?? null;
+            const finalTranscriptSrtPath = result.transcriptSrtFilePath ?? null;
 
             setTranscriptionText(finalText);
             setTranscriptPath(finalTranscriptPath);
             onFilesChanged?.();
 
             if (finalText.trim()) {
-                await runSummarization(finalText, finalTranscriptPath);
+                await runSummarization(finalText, finalTranscriptPath, finalTranscriptSrtPath);
             }
         } catch (error) {
             setTranscriptionError(error instanceof Error ? error.message : String(error));
@@ -178,11 +197,25 @@ export default function RecorderPanel({ onFilesChanged }: Props) {
                 </div>
 
                 <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4 text-sm text-zinc-400 space-y-3">
+                    {copyMessage && (
+                        <div className="rounded-lg border border-sky-800 bg-sky-950/40 px-3 py-2 text-xs text-sky-300">
+                            {copyMessage}
+                        </div>
+                    )}
+
                     {isRecording && <div>현재 마이크 녹음 중이다.</div>}
 
                     {!isRecording && lastSavedPath && (
-                        <div className="break-all text-emerald-300">
-                            저장 완료: {lastSavedPath}
+                        <div className="space-y-2">
+                            <div className="break-all text-emerald-300">
+                                저장 완료: {lastSavedPath}
+                            </div>
+                            <button
+                                onClick={() => void copyText(lastSavedPath, '녹음 파일 경로')}
+                                className="rounded-md border border-zinc-700 px-2 py-1 text-[11px] text-zinc-200 hover:bg-zinc-800"
+                            >
+                                경로 복사
+                            </button>
                         </div>
                     )}
 
@@ -201,14 +234,38 @@ export default function RecorderPanel({ onFilesChanged }: Props) {
                     )}
 
                     {transcriptPath && (
-                        <div className="break-all text-sky-300">
-                            전사 파일: {transcriptPath}
+                        <div className="space-y-2">
+                            <div className="break-all text-sky-300">
+                                전사 파일: {transcriptPath}
+                            </div>
+                            <div className="flex gap-1.5">
+                                <button
+                                    onClick={() => void copyText(transcriptPath, '전사 파일 경로')}
+                                    className="rounded-md border border-zinc-700 px-2 py-1 text-[11px] text-zinc-200 hover:bg-zinc-800"
+                                >
+                                    경로 복사
+                                </button>
+                                <button
+                                    onClick={() => void copyFileContent(transcriptPath, '전사 파일 내용')}
+                                    className="rounded-md border border-zinc-700 px-2 py-1 text-[11px] text-zinc-200 hover:bg-zinc-800"
+                                >
+                                    내용 복사
+                                </button>
+                            </div>
                         </div>
                     )}
 
                     {transcriptionText && (
-                        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-sm text-zinc-100 whitespace-pre-wrap">
-                            {transcriptionText}
+                        <div className="space-y-2">
+                            <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-sm text-zinc-100 whitespace-pre-wrap">
+                                {transcriptionText}
+                            </div>
+                            <button
+                                onClick={() => void copyText(transcriptionText, '전사 텍스트')}
+                                className="rounded-md border border-zinc-700 px-2 py-1 text-[11px] text-zinc-200 hover:bg-zinc-800"
+                            >
+                                전사 텍스트 복사
+                            </button>
                         </div>
                     )}
 
@@ -221,52 +278,76 @@ export default function RecorderPanel({ onFilesChanged }: Props) {
                     )}
 
                     {summaryFilePath && (
-                        <div className="break-all text-sky-300">
-                            요약 파일: {summaryFilePath}
+                        <div className="space-y-2">
+                            <div className="break-all text-sky-300">
+                                요약 파일: {summaryFilePath}
+                            </div>
+                            <div className="flex gap-1.5">
+                                <button
+                                    onClick={() => void copyText(summaryFilePath, '요약 파일 경로')}
+                                    className="rounded-md border border-zinc-700 px-2 py-1 text-[11px] text-zinc-200 hover:bg-zinc-800"
+                                >
+                                    경로 복사
+                                </button>
+                                <button
+                                    onClick={() => void copyFileContent(summaryFilePath, '요약 파일 내용')}
+                                    className="rounded-md border border-zinc-700 px-2 py-1 text-[11px] text-zinc-200 hover:bg-zinc-800"
+                                >
+                                    내용 복사
+                                </button>
+                            </div>
                         </div>
                     )}
 
                     {summaryData && (
-                        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-100 space-y-4">
-                            <div>
-                                <div className="text-xs uppercase tracking-wide text-zinc-500">제목</div>
-                                <div className="mt-1 text-base font-semibold">{summaryData.title}</div>
-                            </div>
+                        <div className="space-y-2">
+                            <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-100 space-y-4">
+                                <div>
+                                    <div className="text-xs uppercase tracking-wide text-zinc-500">제목</div>
+                                    <div className="mt-1 text-base font-semibold">{summaryData.title}</div>
+                                </div>
 
-                            <div>
-                                <div className="text-xs uppercase tracking-wide text-zinc-500">요약</div>
-                                <div className="mt-1 whitespace-pre-wrap">{summaryData.summary}</div>
-                            </div>
+                                <div>
+                                    <div className="text-xs uppercase tracking-wide text-zinc-500">요약</div>
+                                    <div className="mt-1 whitespace-pre-wrap">{summaryData.summary}</div>
+                                </div>
 
-                            <div>
-                                <div className="text-xs uppercase tracking-wide text-zinc-500">핵심 포인트</div>
-                                <ul className="mt-2 list-disc space-y-1 pl-5">
-                                    {summaryData.keyPoints.map((point) => (
-                                        <li key={point}>{point}</li>
-                                    ))}
-                                </ul>
-                            </div>
-
-                            <div>
-                                <div className="text-xs uppercase tracking-wide text-zinc-500">액션 아이템</div>
-                                {summaryData.actionItems.length === 0 ? (
-                                    <div className="mt-2 text-zinc-400">추출된 액션 아이템이 없다.</div>
-                                ) : (
-                                    <ul className="mt-2 space-y-2">
-                                        {summaryData.actionItems.map((item, index) => (
-                                            <li
-                                                key={`${item.task}-${index}`}
-                                                className="rounded-lg border border-zinc-800 bg-zinc-950 p-3"
-                                            >
-                                                <div className="font-medium">{item.task}</div>
-                                                <div className="mt-1 text-xs text-zinc-400">
-                                                    담당: {item.owner || '미정'} / 기한: {item.dueDate || '미정'}
-                                                </div>
-                                            </li>
+                                <div>
+                                    <div className="text-xs uppercase tracking-wide text-zinc-500">핵심 포인트</div>
+                                    <ul className="mt-2 list-disc space-y-1 pl-5">
+                                        {summaryData.keyPoints.map((point) => (
+                                            <li key={point}>{point}</li>
                                         ))}
                                     </ul>
-                                )}
+                                </div>
+
+                                <div>
+                                    <div className="text-xs uppercase tracking-wide text-zinc-500">액션 아이템</div>
+                                    {summaryData.actionItems.length === 0 ? (
+                                        <div className="mt-2 text-zinc-400">추출된 액션 아이템이 없다.</div>
+                                    ) : (
+                                        <ul className="mt-2 space-y-2">
+                                            {summaryData.actionItems.map((item, index) => (
+                                                <li
+                                                    key={`${item.task}-${index}`}
+                                                    className="rounded-lg border border-zinc-800 bg-zinc-950 p-3"
+                                                >
+                                                    <div className="font-medium">{item.task}</div>
+                                                    <div className="mt-1 text-xs text-zinc-400">
+                                                        담당: {item.owner || '미정'} / 기한: {item.dueDate || '미정'}
+                                                    </div>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
                             </div>
+                            <button
+                                onClick={() => void copyText(JSON.stringify(summaryData, null, 2), '요약 JSON')}
+                                className="rounded-md border border-zinc-700 px-2 py-1 text-[11px] text-zinc-200 hover:bg-zinc-800"
+                            >
+                                요약 JSON 복사
+                            </button>
                         </div>
                     )}
 

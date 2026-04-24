@@ -5,6 +5,7 @@ import {
     deleteRecordNoteFile,
     getAudioFileUrl,
     listRecordNoteFiles,
+    readSubtitleForRecording,
     readRecordNoteFile,
     renameRecordNoteFile,
 } from '../services/files.service';
@@ -17,6 +18,13 @@ export const registerFilesIpc = () => {
     ipcMain.handle(IPC_CHANNELS.FILES_READ, async (_event, filePath: string) => {
         return readRecordNoteFile(filePath);
     });
+
+    ipcMain.handle(
+        IPC_CHANNELS.FILES_READ_SUBTITLE_FOR_RECORDING,
+        async (_event, recordingPath: string) => {
+            return readSubtitleForRecording(recordingPath);
+        },
+    );
 
     ipcMain.handle(
         IPC_CHANNELS.FILES_RENAME,

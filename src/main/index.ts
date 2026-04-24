@@ -7,6 +7,7 @@ import { IPC_CHANNELS } from '../shared/constants/ipc';
 import { registerTranscriptionIpc } from './ipc/transcription.ipc';
 import { registerSummarizationIpc } from './ipc/summarization.ipc';
 import { registerFilesIpc } from './ipc/files.ipc';
+import { registerClipboardIpc } from './ipc/clipboard.ipc';
 
 const createWindow = () => {
     const win = new BrowserWindow({
@@ -45,6 +46,7 @@ app.whenReady().then(async () => {
     registerTranscriptionIpc();
     registerSummarizationIpc();
     registerFilesIpc();
+    registerClipboardIpc();
     createWindow();
 
     app.on('activate', () => {

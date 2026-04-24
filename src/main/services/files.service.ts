@@ -17,6 +17,7 @@ const SUMMARY_SUFFIX = '-summary';
 type ManagedDirectory = {
     dir: string;
     kind: RecordNoteFileKind;
+    includeInList: boolean;
 };
 
 const sanitizeBaseName = (value: string) => {
@@ -62,9 +63,10 @@ const isWithinDirectory = (targetPath: string, directoryPath: string) => {
 
 const getManagedDirectories = (paths: Awaited<ReturnType<typeof ensureWorkspace>>['paths']): ManagedDirectory[] => {
     return [
-        { dir: paths.recordingsDir, kind: 'recording' },
-        { dir: paths.transcriptsDir, kind: 'transcript' },
-        { dir: paths.summariesDir, kind: 'summary' },
+        { dir: paths.recordingsDir, kind: 'recording', includeInList: true },
+        { dir: paths.transcriptsDir, kind: 'transcript', includeInList: true },
+        { dir: paths.subtitlesDir, kind: 'transcript', includeInList: false },
+        { dir: paths.summariesDir, kind: 'summary', includeInList: true },
     ];
 };
 
@@ -143,16 +145,16 @@ const toItems = async (
 export const listRecordNoteFiles = async (): Promise<ListFilesResult> => {
     try {
         const workspace = await ensureWorkspace();
+        const managedDirectories = getManagedDirectories(workspace.paths)
+            .filter((item) => item.includeInList);
 
-        const [recordings, transcripts, summaries] = await Promise.all([
-            toItems(workspace.paths.recordingsDir, 'recording'),
-            toItems(workspace.paths.transcriptsDir, 'transcript'),
-            toItems(workspace.paths.summariesDir, 'summary'),
-        ]);
+        const groupedItems = await Promise.all(
+            managedDirectories.map((managed) => toItems(managed.dir, managed.kind)),
+        );
 
         return {
             success: true,
-            items: [...recordings, ...transcripts, ...summaries],
+            items: groupedItems.flat(),
         };
     } catch (error) {
         return {
@@ -340,6 +342,36 @@ export const getAudioFileUrl = async (
         return {
             success: false,
             path: filePath,
+            error: error instanceof Error ? error.message : String(error),
+        };
+    }
+};
+
+export const readSubtitleForRecording = async (
+    recordingPath: string,
+): Promise<ReadFileResult> => {
+    try {
+        const workspace = await ensureWorkspace();
+        const recordingManagedPath = getManagedPathInfo(recordingPath, [
+            { dir: workspace.paths.recordingsDir, kind: 'recording', includeInList: true },
+        ]).path;
+
+        const stem = path.basename(
+            recordingManagedPath,
+            path.extname(recordingManagedPath),
+        );
+        const subtitlePath = path.join(workspace.paths.subtitlesDir, `${stem}.srt`);
+        const content = await fs.readFile(subtitlePath, 'utf-8');
+
+        return {
+            success: true,
+            path: subtitlePath,
+            content,
+        };
+    } catch (error) {
+        return {
+            success: false,
+            path: recordingPath,
             error: error instanceof Error ? error.message : String(error),
         };
     }

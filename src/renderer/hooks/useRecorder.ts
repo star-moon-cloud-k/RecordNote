@@ -82,13 +82,13 @@ export const useRecorder = () => {
         }
     }, []);
 
-    const stopRecording = useCallback(async () => {
+    const stopRecording = useCallback(async (): Promise<string | null> => {
         const recorder = mediaRecorderRef.current;
-        if (!recorder || recorder.state === 'inactive') return;
+        if (!recorder || recorder.state === 'inactive') return null;
 
         setStatus('stopping');
 
-        const savePromise = new Promise<void>((resolve) => {
+        const savePromise = new Promise<string | null>((resolve) => {
             recorder.onstop = async () => {
                 try {
                     resetTimer();
@@ -108,22 +108,24 @@ export const useRecorder = () => {
                         throw new Error(result.error || '녹음 파일 저장 실패');
                     }
 
-                    setLastSavedPath(result.filePath ?? null);
+                    const savedPath = result.filePath ?? null;
+                    setLastSavedPath(savedPath);
                     setStatus('success');
+                    resolve(savedPath);
                 } catch (error) {
                     setStatus('error');
                     setErrorMessage(error instanceof Error ? error.message : String(error));
+                    resolve(null);
                 } finally {
                     stopTracks();
                     mediaRecorderRef.current = null;
                     chunksRef.current = [];
-                    resolve();
                 }
             };
         });
 
         recorder.stop();
-        await savePromise;
+        return savePromise;
     }, []);
 
     useEffect(() => {

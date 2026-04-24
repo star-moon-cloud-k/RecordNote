@@ -1,5 +1,5 @@
-import { useRecorder } from '../hooks/useRecorder';
 import { useState } from 'react';
+import { useRecorder } from '../hooks/useRecorder';
 
 const getBadge = (status: string) => {
     switch (status) {
@@ -9,6 +9,8 @@ const getBadge = (status: string) => {
         case 'stopping':
         case 'requesting-permission':
             return 'border-sky-800 bg-sky-950/80 text-sky-300';
+        case 'transcribing':
+            return 'border-violet-800 bg-violet-950/80 text-violet-300';
         case 'success':
             return 'border-emerald-800 bg-emerald-950/80 text-emerald-300';
         case 'error':
@@ -28,13 +30,39 @@ export default function RecorderPanel() {
         stopRecording,
     } = useRecorder();
 
-    const isRecording = status === 'recording';
-    const canStart = ['idle', 'success', 'error'].includes(status);
-    const canStop = ['recording'].includes(status);
+    const [isTranscribing, setIsTranscribing] = useState(false);
     const [transcriptionText, setTranscriptionText] = useState<string | null>(null);
     const [transcriptionError, setTranscriptionError] = useState<string | null>(null);
-    const [isTranscribing, setIsTranscribing] = useState(false);
+    const [transcriptPath, setTranscriptPath] = useState<string | null>(null);
 
+    const isRecording = status === 'recording';
+    const canStart = ['idle', 'success', 'error'].includes(status) && !isTranscribing;
+    const canStop = status === 'recording';
+    const displayStatus = isTranscribing ? 'transcribing' : status;
+
+    const runTranscription = async (sourceFilePath: string) => {
+        try {
+            setIsTranscribing(true);
+            setTranscriptionError(null);
+            setTranscriptionText(null);
+            setTranscriptPath(null);
+
+            const result = await window.RecordNote.startTranscription({
+                sourceFilePath,
+            });
+
+            if (!result.success) {
+                throw new Error(result.error || '전사 실패');
+            }
+
+            setTranscriptionText(result.text ?? '');
+            setTranscriptPath(result.transcriptFilePath ?? null);
+        } catch (error) {
+            setTranscriptionError(error instanceof Error ? error.message : String(error));
+        } finally {
+            setIsTranscribing(false);
+        }
+    };
 
     return (
         <section className="rounded-3xl border border-zinc-800 bg-zinc-900 p-6 shadow-xl">
@@ -42,12 +70,12 @@ export default function RecorderPanel() {
                 <div>
                     <h2 className="text-xl font-semibold">녹음 컨트롤</h2>
                     <p className="mt-2 text-sm text-zinc-400">
-                        마이크 입력을 받아 로컬 작업 디렉터리에 녹음 파일을 저장한다.
+                        녹음 저장 후 자동으로 전사를 수행한다.
                     </p>
                 </div>
 
-                <div className={`rounded-full border px-3 py-1 text-xs ${getBadge(status)}`}>
-                    {status}
+                <div className={`rounded-full border px-3 py-1 text-xs ${getBadge(displayStatus)}`}>
+                    {displayStatus}
                 </div>
             </div>
 
@@ -69,68 +97,60 @@ export default function RecorderPanel() {
                     </button>
 
                     <button
-                        onClick={() => void stopRecording()}
+                        onClick={async () => {
+                            const savedPath = await stopRecording();
+
+                            if (savedPath) {
+                                await runTranscription(savedPath);
+                            }
+                        }}
                         disabled={!canStop}
                         className="rounded-2xl border border-zinc-700 px-5 py-3 font-medium text-zinc-200 transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         녹음 중지
                     </button>
                 </div>
-                <button
-                    disabled={!lastSavedPath || isTranscribing}
-                    onClick={async () => {
-                        if (!lastSavedPath) return;
 
-                        try {
-                            setIsTranscribing(true);
-                            setTranscriptionError(null);
-                            setTranscriptionText(null);
-
-                            const result = await window.RecordNote.startTranscription({
-                                sourceFilePath: lastSavedPath,
-                            });
-
-                            console.log('transcription result:', result);
-
-                            if (!result.success) {
-                                throw new Error(result.error || '전사 실패');
-                            }
-
-                            setTranscriptionText(result.text ?? '');
-                        } catch (error) {
-                            setTranscriptionError(error instanceof Error ? error.message : String(error));
-                        } finally {
-                            setIsTranscribing(false);
-                        }
-                    }}
-                    className="rounded-2xl border border-zinc-700 px-5 py-3 font-medium text-zinc-200 transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                    {isTranscribing ? '전사 중...' : '전사 시작'}
-                    {transcriptionError && (
-                        <div className="mt-3 break-all text-amber-300">
-                            전사 오류: {transcriptionError}
-                        </div>
-                    )}
-
-                    {transcriptionText && (
-                        <div className="mt-3 rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-sm text-zinc-200 whitespace-pre-wrap">
-                            {transcriptionText}
-                        </div>
-                    )}
-                </button>
-                <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4 text-sm text-zinc-400">
+                <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4 text-sm text-zinc-400 space-y-3">
                     {isRecording && <div>현재 마이크 녹음 중이다.</div>}
+
                     {!isRecording && lastSavedPath && (
                         <div className="break-all text-emerald-300">
                             저장 완료: {lastSavedPath}
                         </div>
                     )}
-                    {!isRecording && errorMessage && (
+
+                    {errorMessage && (
                         <div className="break-all text-amber-300">
-                            오류: {errorMessage}
+                            녹음 오류: {errorMessage}
                         </div>
                     )}
-                    {!isRecording && !lastSavedPath && !errorMessage && (
+
+                    {isTranscribing && (
+                        <div className="text-violet-300">
+                            전사 중...
+                        </div>
+                    )}
+
+                    {transcriptionError && (
+                        <div className="break-all text-amber-300">
+                            전사 오류: {transcriptionError}
+                        </div>
+                    )}
+
+                    {transcriptPath && (
+                        <div className="break-all text-sky-300">
+                            전사 파일: {transcriptPath}
+                        </div>
+                    )}
+
+                    {transcriptionText && (
+                        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-sm text-zinc-100 whitespace-pre-wrap">
+                            {transcriptionText}
+                        </div>
+                    )}
+
+                    {!isRecording && !lastSavedPath && !transcriptionText && !transcriptionError && !errorMessage && (
                         <div>아직 저장된 녹음이 없다.</div>
                     )}
                 </div>

@@ -13,7 +13,8 @@
     "lint": "echo \"No linting configured\"",
     "setup:whisper": "bash ./scripts/setup-whisper.sh",
     "clean:whisper": "bash ./scripts/clean-whisper-cache.sh",
-    "setup:ffmpeg": "bash ./scripts/setup-ffmpeg.sh"
+    "setup:ffmpeg": "bash ./scripts/setup-ffmpeg.sh",
+    "setup:sllm": "bash ./scripts/setup-sllm.sh"
   },
   "keywords": [],
   "author": {
@@ -43,6 +44,7 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.2.4",
     "electron-squirrel-startup": "^1.0.1",
+    "node-llama-cpp": "^3.18.1",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "tailwindcss": "^4.2.4"

@@ -4,5 +4,6 @@ export const IPC_CHANNELS = {
     RECORDING_SAVE: 'recording:save',
 
     TRANSCRIPTION_START: 'transcription:start',
+    SUMMARIZATION_START: 'summarization:start',
 
 } as const;

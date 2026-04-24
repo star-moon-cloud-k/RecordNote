@@ -35,6 +35,41 @@ export default function RecorderPanel() {
     const [transcriptionError, setTranscriptionError] = useState<string | null>(null);
     const [transcriptPath, setTranscriptPath] = useState<string | null>(null);
 
+
+    const [isSummarizing, setIsSummarizing] = useState(false);
+    const [summaryError, setSummaryError] = useState<string | null>(null);
+    const [summaryData, setSummaryData] = useState<{
+        title: string;
+        summary: string;
+        keyPoints: string[];
+        actionItems: { task: string; owner: string; dueDate: string }[];
+    } | null>(null);
+
+
+    //요약 함수
+    const runSummarization = async (text: string) => {
+        try {
+            setIsSummarizing(true);
+            setSummaryError(null);
+            setSummaryData(null);
+
+            const result = await window.RecordNote.summarizeTranscript({
+                transcriptText: text,
+            });
+
+            if (!result.success || !result.data) {
+                throw new Error(result.error || '요약 실패');
+            }
+
+            setSummaryData(result.data);
+        } catch (error) {
+            setSummaryError(error instanceof Error ? error.message : String(error));
+        } finally {
+            setIsSummarizing(false);
+        }
+    };
+
+
     const isRecording = status === 'recording';
     const canStart = ['idle', 'success', 'error'].includes(status) && !isTranscribing;
     const canStop = status === 'recording';
@@ -57,6 +92,15 @@ export default function RecorderPanel() {
 
             setTranscriptionText(result.text ?? '');
             setTranscriptPath(result.transcriptFilePath ?? null);
+            const finalText = result.text ?? '';
+            setTranscriptionText(finalText);
+            setTranscriptPath(result.transcriptFilePath ?? null);
+
+            if (finalText.trim()) {
+                await runSummarization(finalText);
+            }
+
+
         } catch (error) {
             setTranscriptionError(error instanceof Error ? error.message : String(error));
         } finally {
@@ -155,6 +199,117 @@ export default function RecorderPanel() {
                     )}
                 </div>
             </div>
+            {isSummarizing && (
+                <div className="text-fuchsia-300">
+                    요약 중...
+                </div>
+            )}
+
+            {summaryError && (
+                <div className="break-all text-amber-300">
+                    요약 오류: {summaryError}
+                </div>
+            )}
+
+            {summaryData && (
+                <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-100 space-y-4">
+                    <div>
+                        <div className="text-xs uppercase tracking-wide text-zinc-500">제목</div>
+                        <div className="mt-1 text-base font-semibold">{summaryData.title}</div>
+                    </div>
+
+                    <div>
+                        <div className="text-xs uppercase tracking-wide text-zinc-500">요약</div>
+                        <div className="mt-1 whitespace-pre-wrap">{summaryData.summary}</div>
+                    </div>
+
+                    <div>
+                        <div className="text-xs uppercase tracking-wide text-zinc-500">핵심 포인트</div>
+                        <ul className="mt-2 list-disc space-y-1 pl-5">
+                            {summaryData.keyPoints.map((point) => (
+                                <li key={point}>{point}</li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    <div>
+                        <div className="text-xs uppercase tracking-wide text-zinc-500">액션 아이템</div>
+                        {summaryData.actionItems.length === 0 ? (
+                            <div className="mt-2 text-zinc-400">추출된 액션 아이템이 없다.</div>
+                        ) : (
+                            <ul className="mt-2 space-y-2">
+                                {summaryData.actionItems.map((item, index) => (
+                                    <li
+                                        key={`${item.task}-${index}`}
+                                        className="rounded-lg border border-zinc-800 bg-zinc-950 p-3"
+                                    >
+                                        <div className="font-medium">{item.task}</div>
+                                        <div className="mt-1 text-xs text-zinc-400">
+                                            담당: {item.owner || '미정'} / 기한: {item.dueDate || '미정'}
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+
+                </div>
+            )}
+            {isSummarizing && (
+                <div className="text-fuchsia-300">
+                    요약 중...
+                </div>
+            )}
+
+            {summaryError && (
+                <div className="break-all text-amber-300">
+                    요약 오류: {summaryError}
+                </div>
+            )}
+
+            {summaryData && (
+                <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-100 space-y-4">
+                    <div>
+                        <div className="text-xs uppercase tracking-wide text-zinc-500">제목</div>
+                        <div className="mt-1 text-base font-semibold">{summaryData.title}</div>
+                    </div>
+
+                    <div>
+                        <div className="text-xs uppercase tracking-wide text-zinc-500">요약</div>
+                        <div className="mt-1 whitespace-pre-wrap">{summaryData.summary}</div>
+                    </div>
+
+                    <div>
+                        <div className="text-xs uppercase tracking-wide text-zinc-500">핵심 포인트</div>
+                        <ul className="mt-2 list-disc space-y-1 pl-5">
+                            {summaryData.keyPoints.map((point) => (
+                                <li key={point}>{point}</li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    <div>
+                        <div className="text-xs uppercase tracking-wide text-zinc-500">액션 아이템</div>
+                        {summaryData.actionItems.length === 0 ? (
+                            <div className="mt-2 text-zinc-400">추출된 액션 아이템이 없다.</div>
+                        ) : (
+                            <ul className="mt-2 space-y-2">
+                                {summaryData.actionItems.map((item, index) => (
+                                    <li
+                                        key={`${item.task}-${index}`}
+                                        className="rounded-lg border border-zinc-800 bg-zinc-950 p-3"
+                                    >
+                                        <div className="font-medium">{item.task}</div>
+                                        <div className="mt-1 text-xs text-zinc-400">
+                                            담당: {item.owner || '미정'} / 기한: {item.dueDate || '미정'}
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+                </div>
+            )}
         </section>
     );
 }

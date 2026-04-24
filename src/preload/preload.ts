@@ -3,6 +3,7 @@ import type { WorkspaceState } from '../shared/types/workspace';
 import { IPC_CHANNELS } from '../shared/constants/ipc';
 import type { SaveRecordingInput, SaveRecordingOutput } from '../shared/types/recorder';
 import { StartTranscriptionInput, StartTranscriptionOutput } from '../shared/types/transcription';
+import { SummarizeTranscriptInput, SummarizeTranscriptOutput } from '../shared/types/summarization';
 
 contextBridge.exposeInMainWorld('RecordNote', {
     getWorkspaceState: async (): Promise<WorkspaceState> => {
@@ -17,5 +18,10 @@ contextBridge.exposeInMainWorld('RecordNote', {
         payload: StartTranscriptionInput,
     ): Promise<StartTranscriptionOutput> => {
         return ipcRenderer.invoke(IPC_CHANNELS.TRANSCRIPTION_START, payload);
+    },
+    summarizeTranscript: async (
+        payload: SummarizeTranscriptInput,
+    ): Promise<SummarizeTranscriptOutput> => {
+        return ipcRenderer.invoke(IPC_CHANNELS.SUMMARIZATION_START, payload);
     },
 });

@@ -5,7 +5,7 @@ import { ensureWorkspace } from './services/workspace.service';
 import { registerRecorderIpc } from './ipc/recorder.ipc';
 import { IPC_CHANNELS } from '../shared/constants/ipc';
 import { registerTranscriptionIpc } from './ipc/transcription.ipc';
-
+import { registerSummarizationIpc } from './ipc/summarization.ipc';
 
 const createWindow = () => {
     const win = new BrowserWindow({
@@ -42,7 +42,7 @@ app.whenReady().then(async () => {
     registerRecorderIpc();
     registerWorkspaceIpc();
     registerTranscriptionIpc();
-
+    registerSummarizationIpc();
     createWindow();
 
     app.on('activate', () => {

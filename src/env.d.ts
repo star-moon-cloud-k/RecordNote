@@ -13,6 +13,7 @@ declare global {
             getWorkspaceState: () => Promise<WorkspaceState>;
             saveRecording: (payload: SaveRecordingInput) => Promise<SaveRecordingOutput>;
             startTranscription: (payload: StartTranscriptionInput) => Promise<StartTranscriptionOutput>;
+            summarizeTranscript: (payload: SummarizeTranscriptInput) => Promise<SummarizeTranscriptOutput>;
         };
     }
 }

@@ -1,11 +1,13 @@
 import path from 'node:path';
 import { app } from 'electron';
+import fs from 'fs/promises';
 
 import type {
     SummarizeTranscriptInput,
     SummarizeTranscriptOutput,
     SummarizeTranscriptData,
 } from '../../shared/types/summarization';
+import { ensureWorkspace } from './workspace.service';
 
 let loadedModel: any = null;
 let loadedContext: any = null;
@@ -126,6 +128,8 @@ export const summarizeTranscript = async (
     input: SummarizeTranscriptInput,
 ): Promise<SummarizeTranscriptOutput> => {
     try {
+
+        const summaryFilePath = await getSummaryFilePath(input.transcriptFilePath!);
         const transcript = input.transcriptText.trim();
 
         if (!transcript) {
@@ -145,11 +149,20 @@ export const summarizeTranscript = async (
 
         const parsed = extractJson(rawText);
         const data = normalizeSummaryData(parsed);
+        await fs.writeFile(summaryFilePath,
+            JSON.stringify({
+                createdAt: new Date().toISOString(),
+                transcriptFilePath: input.transcriptFilePath ?? null,
+                data,
+                rawText,
+            }, null, 2), 'utf-8');
+
 
         return {
             success: true,
             data,
             rawText,
+            summaryFilePath,
         };
     } catch (error) {
         return {
@@ -158,3 +171,16 @@ export const summarizeTranscript = async (
         };
     }
 };
+
+
+const getSummaryFilePath = async (transcriptFilePath: string) => {
+    const workspace = await ensureWorkspace();
+
+    if (transcriptFilePath) {
+        const baseName = path.basename(transcriptFilePath, path.extname(transcriptFilePath));
+        return path.join(workspace.paths.summariesDir, `${baseName}-summary.json`);
+    }
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    return path.join(workspace.paths.summariesDir, `summary-${timestamp}.json`);
+}

@@ -1,5 +1,6 @@
 export type SummarizeTranscriptInput = {
     transcriptText: string;
+    transcriptFilePath?: string;
 }
 
 export type SummaryActionItem = {
@@ -20,4 +21,5 @@ export type SummarizeTranscriptOutput = {
     data?: SummarizeTranscriptData;
     error?: string;
     rawText?: string;
+    summaryFilePath?: string;
 }

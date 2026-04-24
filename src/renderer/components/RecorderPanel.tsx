@@ -34,7 +34,7 @@ export default function RecorderPanel() {
     const [transcriptionText, setTranscriptionText] = useState<string | null>(null);
     const [transcriptionError, setTranscriptionError] = useState<string | null>(null);
     const [transcriptPath, setTranscriptPath] = useState<string | null>(null);
-
+    const [summaryFilePath, setSummaryFilePath] = useState<string | null>(null);
 
     const [isSummarizing, setIsSummarizing] = useState(false);
     const [summaryError, setSummaryError] = useState<string | null>(null);
@@ -55,6 +55,7 @@ export default function RecorderPanel() {
 
             const result = await window.RecordNote.summarizeTranscript({
                 transcriptText: text,
+                transcriptFilePath: transcriptPath ?? undefined,
             });
 
             if (!result.success || !result.data) {
@@ -62,6 +63,7 @@ export default function RecorderPanel() {
             }
 
             setSummaryData(result.data);
+            setSummaryFilePath(result.summaryFilePath ?? null);
         } catch (error) {
             setSummaryError(error instanceof Error ? error.message : String(error));
         } finally {
@@ -309,7 +311,13 @@ export default function RecorderPanel() {
                         )}
                     </div>
                 </div>
+
+            )}{summaryFilePath && (
+                <div className="break-all text-sky-300">
+                    요약 파일: {summaryFilePath}
+                </div>
             )}
+
         </section>
     );
 }

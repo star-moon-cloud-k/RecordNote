@@ -6,6 +6,9 @@ export const IPC_CHANNELS = {
     TRANSCRIPTION_START: 'transcription:start',
     SUMMARIZATION_START: 'summarization:start',
 
-    FILE_LIST: 'file:list',
-    FILE_READ: 'file:read',
+    FILES_LIST: 'files:list',
+    FILES_READ: 'files:read',
+    FILES_RENAME: 'files:rename',
+    FILES_DELETE: 'files:delete',
+    FILES_GET_AUDIO_URL: 'files:get-audio-url',
 } as const;

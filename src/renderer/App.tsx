@@ -6,6 +6,7 @@ import type { RecordNoteFileItem } from '../shared/types/files';
 
 export default function App() {
     const [selectedItem, setSelectedItem] = useState<RecordNoteFileItem | null>(null);
+    const [refreshKey, setRefreshKey] = useState(0);
 
     return (
         <div className="min-h-screen bg-zinc-950 text-zinc-100">
@@ -17,12 +18,13 @@ export default function App() {
                     </h1>
                 </header>
 
-                <RecorderPanel />
+                <RecorderPanel onFilesChanged={() => setRefreshKey((prev) => prev + 1)} />
 
                 <main className="grid flex-1 gap-6 lg:grid-cols-[0.9fr_1.1fr]">
                     <FileExplorerPanel
                         selectedPath={selectedItem?.path ?? null}
                         onSelect={setSelectedItem}
+                        refreshKey={refreshKey}
                     />
                     <PreviewPanel selectedItem={selectedItem} />
                 </main>

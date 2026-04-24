@@ -8,7 +8,14 @@ import type {
     SummarizeTranscriptInput,
     SummarizeTranscriptOutput,
 } from './shared/types/summarization';
-import type { ListFilesResult, ReadFileResult } from './shared/types/files';
+import type {
+    DeleteFileResult,
+    GetAudioFileUrlResult,
+    ListFilesResult,
+    ReadFileResult,
+    RenameFileInput,
+    RenameFileResult,
+} from './shared/types/files';
 
 declare global {
     const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
@@ -21,6 +28,9 @@ declare global {
             summarizeTranscript: (payload: SummarizeTranscriptInput) => Promise<SummarizeTranscriptOutput>;
             listFiles: () => Promise<ListFilesResult>;
             readFile: (filePath: string) => Promise<ReadFileResult>;
+            renameFile: (payload: RenameFileInput) => Promise<RenameFileResult>;
+            deleteFile: (filePath: string) => Promise<DeleteFileResult>;
+            getAudioFileUrl: (filePath: string) => Promise<GetAudioFileUrlResult>;
         };
     }
 }

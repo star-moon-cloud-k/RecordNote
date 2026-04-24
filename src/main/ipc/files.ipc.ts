@@ -1,13 +1,41 @@
-import { ipcMain } from "electron"
-import { IPC_CHANNELS } from "../../shared/constants/ipc"
-import { listRecordNoteFiles, readRecordNoteFile } from "../services/files.service";
+import { ipcMain } from 'electron';
+import { IPC_CHANNELS } from '../../shared/constants/ipc';
+import type { RenameFileInput } from '../../shared/types/files';
+import {
+    deleteRecordNoteFile,
+    getAudioFileUrl,
+    listRecordNoteFiles,
+    readRecordNoteFile,
+    renameRecordNoteFile,
+} from '../services/files.service';
 
 export const registerFilesIpc = () => {
-    ipcMain.handle(IPC_CHANNELS.FILE_LIST, async () => {
+    ipcMain.handle(IPC_CHANNELS.FILES_LIST, async () => {
         return listRecordNoteFiles();
     });
 
-    ipcMain.handle(IPC_CHANNELS.FILE_READ, async (_event, filePath: string) => {
+    ipcMain.handle(IPC_CHANNELS.FILES_READ, async (_event, filePath: string) => {
         return readRecordNoteFile(filePath);
     });
-}
+
+    ipcMain.handle(
+        IPC_CHANNELS.FILES_RENAME,
+        async (_event, payload: RenameFileInput) => {
+            return renameRecordNoteFile(payload);
+        },
+    );
+
+    ipcMain.handle(
+        IPC_CHANNELS.FILES_DELETE,
+        async (_event, filePath: string) => {
+            return deleteRecordNoteFile(filePath);
+        },
+    );
+
+    ipcMain.handle(
+        IPC_CHANNELS.FILES_GET_AUDIO_URL,
+        async (_event, filePath: string) => {
+            return getAudioFileUrl(filePath);
+        },
+    );
+};

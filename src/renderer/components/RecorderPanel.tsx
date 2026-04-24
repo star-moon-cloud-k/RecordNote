@@ -29,7 +29,11 @@ type SummaryData = {
     actionItems: { task: string; owner: string; dueDate: string }[];
 };
 
-export default function RecorderPanel() {
+type Props = {
+    onFilesChanged?: () => void;
+};
+
+export default function RecorderPanel({ onFilesChanged }: Props) {
     const {
         status,
         formattedElapsed,
@@ -83,6 +87,7 @@ export default function RecorderPanel() {
 
             setSummaryData(result.data);
             setSummaryFilePath(result.summaryFilePath ?? null);
+            onFilesChanged?.();
         } catch (error) {
             setSummaryError(error instanceof Error ? error.message : String(error));
         } finally {
@@ -113,6 +118,7 @@ export default function RecorderPanel() {
 
             setTranscriptionText(finalText);
             setTranscriptPath(finalTranscriptPath);
+            onFilesChanged?.();
 
             if (finalText.trim()) {
                 await runSummarization(finalText, finalTranscriptPath);

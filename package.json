@@ -10,7 +10,10 @@
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
-    "lint": "echo \"No linting configured\""
+    "lint": "echo \"No linting configured\"",
+    "setup:whisper": "bash ./scripts/setup-whisper.sh",
+    "clean:whisper": "bash ./scripts/clean-whisper-cache.sh",
+    "setup:ffmpeg": "bash ./scripts/setup-ffmpeg.sh"
   },
   "keywords": [],
   "author": {

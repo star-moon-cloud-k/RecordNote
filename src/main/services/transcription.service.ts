@@ -111,6 +111,7 @@ export const startTranscription = async (
         const wavFilePath = path.join(workspace.paths.processingDir, `${baseName}.wav`);
         const transcriptBasePath = path.join(workspace.paths.transcriptsDir, baseName);
         const transcriptFilePath = `${transcriptBasePath}.txt`;
+        const language = 'ko';
 
         console.log('[transcription] output paths');
         console.log('  wavFilePath:', wavFilePath);
@@ -139,6 +140,8 @@ export const startTranscription = async (
                 whisperModel,
                 '-f',
                 wavFilePath,
+                '-l',
+                language,
                 '-otxt',
                 '-of',
                 transcriptBasePath,

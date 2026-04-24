@@ -1,6 +1,5 @@
 import type { WorkspaceState } from './shared/types/workspace';
-
-declare module '*.css';
+import type { SaveRecordingInput, SaveRecordingOutput } from './shared/types/recorder';
 
 declare global {
     const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
@@ -8,6 +7,9 @@ declare global {
     interface Window {
         RecordNote: {
             getWorkspaceState: () => Promise<WorkspaceState>;
+            saveRecording: (payload: SaveRecordingInput) => Promise<SaveRecordingOutput>;
         };
     }
 }
+
+export {};

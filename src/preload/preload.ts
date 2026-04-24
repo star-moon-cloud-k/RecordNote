@@ -24,4 +24,10 @@ contextBridge.exposeInMainWorld('RecordNote', {
     ): Promise<SummarizeTranscriptOutput> => {
         return ipcRenderer.invoke(IPC_CHANNELS.SUMMARIZATION_START, payload);
     },
+    listFiles: async () => {
+        return ipcRenderer.invoke(IPC_CHANNELS.FILE_LIST);
+    },
+    readFile: async (filePath: string) => {
+        return ipcRenderer.invoke(IPC_CHANNELS.FILE_READ, filePath);
+    }
 });

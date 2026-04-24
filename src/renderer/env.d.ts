@@ -4,6 +4,11 @@ import type {
     StartTranscriptionInput,
     StartTranscriptionOutput,
 } from '../shared/types/transcription';
+import type {
+    SummarizeTranscriptInput,
+    SummarizeTranscriptOutput,
+} from '../shared/types/summarization';
+import type { ListFilesResult, ReadFileResult } from '../shared/types/files';
 
 declare global {
     interface Window {
@@ -11,6 +16,9 @@ declare global {
             getWorkspaceState: () => Promise<WorkspaceState>;
             saveRecording: (payload: SaveRecordingInput) => Promise<SaveRecordingOutput>;
             startTranscription: (payload: StartTranscriptionInput) => Promise<StartTranscriptionOutput>;
+            summarizeTranscript: (payload: SummarizeTranscriptInput) => Promise<SummarizeTranscriptOutput>;
+            listFiles: () => Promise<ListFilesResult>;
+            readFile: (filePath: string) => Promise<ReadFileResult>;
         };
     }
 }

@@ -11,6 +11,8 @@ const getBadge = (status: string) => {
             return 'border-sky-800 bg-sky-950/80 text-sky-300';
         case 'transcribing':
             return 'border-violet-800 bg-violet-950/80 text-violet-300';
+        case 'summarizing':
+            return 'border-fuchsia-800 bg-fuchsia-950/80 text-fuchsia-300';
         case 'success':
             return 'border-emerald-800 bg-emerald-950/80 text-emerald-300';
         case 'error':
@@ -18,6 +20,13 @@ const getBadge = (status: string) => {
         default:
             return 'border-zinc-700 bg-zinc-950 text-zinc-300';
     }
+};
+
+type SummaryData = {
+    title: string;
+    summary: string;
+    keyPoints: string[];
+    actionItems: { task: string; owner: string; dueDate: string }[];
 };
 
 export default function RecorderPanel() {
@@ -34,28 +43,38 @@ export default function RecorderPanel() {
     const [transcriptionText, setTranscriptionText] = useState<string | null>(null);
     const [transcriptionError, setTranscriptionError] = useState<string | null>(null);
     const [transcriptPath, setTranscriptPath] = useState<string | null>(null);
-    const [summaryFilePath, setSummaryFilePath] = useState<string | null>(null);
 
     const [isSummarizing, setIsSummarizing] = useState(false);
     const [summaryError, setSummaryError] = useState<string | null>(null);
-    const [summaryData, setSummaryData] = useState<{
-        title: string;
-        summary: string;
-        keyPoints: string[];
-        actionItems: { task: string; owner: string; dueDate: string }[];
-    } | null>(null);
+    const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
+    const [summaryFilePath, setSummaryFilePath] = useState<string | null>(null);
 
+    const isRecording = status === 'recording';
+    const canStart =
+        ['idle', 'success', 'error'].includes(status) &&
+        !isTranscribing &&
+        !isSummarizing;
+    const canStop = status === 'recording';
 
-    //요약 함수
-    const runSummarization = async (text: string) => {
+    const displayStatus = isSummarizing
+        ? 'summarizing'
+        : isTranscribing
+            ? 'transcribing'
+            : status;
+
+    const runSummarization = async (
+        text: string,
+        transcriptFilePath?: string | null,
+    ) => {
         try {
             setIsSummarizing(true);
             setSummaryError(null);
             setSummaryData(null);
+            setSummaryFilePath(null);
 
             const result = await window.RecordNote.summarizeTranscript({
                 transcriptText: text,
-                transcriptFilePath: transcriptPath ?? undefined,
+                transcriptFilePath: transcriptFilePath ?? undefined,
             });
 
             if (!result.success || !result.data) {
@@ -71,18 +90,15 @@ export default function RecorderPanel() {
         }
     };
 
-
-    const isRecording = status === 'recording';
-    const canStart = ['idle', 'success', 'error'].includes(status) && !isTranscribing;
-    const canStop = status === 'recording';
-    const displayStatus = isTranscribing ? 'transcribing' : status;
-
     const runTranscription = async (sourceFilePath: string) => {
         try {
             setIsTranscribing(true);
             setTranscriptionError(null);
             setTranscriptionText(null);
             setTranscriptPath(null);
+            setSummaryError(null);
+            setSummaryData(null);
+            setSummaryFilePath(null);
 
             const result = await window.RecordNote.startTranscription({
                 sourceFilePath,
@@ -92,17 +108,15 @@ export default function RecorderPanel() {
                 throw new Error(result.error || '전사 실패');
             }
 
-            setTranscriptionText(result.text ?? '');
-            setTranscriptPath(result.transcriptFilePath ?? null);
             const finalText = result.text ?? '';
+            const finalTranscriptPath = result.transcriptFilePath ?? null;
+
             setTranscriptionText(finalText);
-            setTranscriptPath(result.transcriptFilePath ?? null);
+            setTranscriptPath(finalTranscriptPath);
 
             if (finalText.trim()) {
-                await runSummarization(finalText);
+                await runSummarization(finalText, finalTranscriptPath);
             }
-
-
         } catch (error) {
             setTranscriptionError(error instanceof Error ? error.message : String(error));
         } finally {
@@ -116,7 +130,7 @@ export default function RecorderPanel() {
                 <div>
                     <h2 className="text-xl font-semibold">녹음 컨트롤</h2>
                     <p className="mt-2 text-sm text-zinc-400">
-                        녹음 저장 후 자동으로 전사를 수행한다.
+                        녹음 저장 후 자동으로 전사와 요약을 수행한다.
                     </p>
                 </div>
 
@@ -172,11 +186,7 @@ export default function RecorderPanel() {
                         </div>
                     )}
 
-                    {isTranscribing && (
-                        <div className="text-violet-300">
-                            전사 중...
-                        </div>
-                    )}
+                    {isTranscribing && <div className="text-violet-300">전사 중...</div>}
 
                     {transcriptionError && (
                         <div className="break-all text-amber-300">
@@ -196,128 +206,73 @@ export default function RecorderPanel() {
                         </div>
                     )}
 
-                    {!isRecording && !lastSavedPath && !transcriptionText && !transcriptionError && !errorMessage && (
-                        <div>아직 저장된 녹음이 없다.</div>
+                    {isSummarizing && <div className="text-fuchsia-300">요약 중...</div>}
+
+                    {summaryError && (
+                        <div className="break-all text-amber-300">
+                            요약 오류: {summaryError}
+                        </div>
                     )}
+
+                    {summaryFilePath && (
+                        <div className="break-all text-sky-300">
+                            요약 파일: {summaryFilePath}
+                        </div>
+                    )}
+
+                    {summaryData && (
+                        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-100 space-y-4">
+                            <div>
+                                <div className="text-xs uppercase tracking-wide text-zinc-500">제목</div>
+                                <div className="mt-1 text-base font-semibold">{summaryData.title}</div>
+                            </div>
+
+                            <div>
+                                <div className="text-xs uppercase tracking-wide text-zinc-500">요약</div>
+                                <div className="mt-1 whitespace-pre-wrap">{summaryData.summary}</div>
+                            </div>
+
+                            <div>
+                                <div className="text-xs uppercase tracking-wide text-zinc-500">핵심 포인트</div>
+                                <ul className="mt-2 list-disc space-y-1 pl-5">
+                                    {summaryData.keyPoints.map((point) => (
+                                        <li key={point}>{point}</li>
+                                    ))}
+                                </ul>
+                            </div>
+
+                            <div>
+                                <div className="text-xs uppercase tracking-wide text-zinc-500">액션 아이템</div>
+                                {summaryData.actionItems.length === 0 ? (
+                                    <div className="mt-2 text-zinc-400">추출된 액션 아이템이 없다.</div>
+                                ) : (
+                                    <ul className="mt-2 space-y-2">
+                                        {summaryData.actionItems.map((item, index) => (
+                                            <li
+                                                key={`${item.task}-${index}`}
+                                                className="rounded-lg border border-zinc-800 bg-zinc-950 p-3"
+                                            >
+                                                <div className="font-medium">{item.task}</div>
+                                                <div className="mt-1 text-xs text-zinc-400">
+                                                    담당: {item.owner || '미정'} / 기한: {item.dueDate || '미정'}
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {!isRecording &&
+                        !lastSavedPath &&
+                        !transcriptionText &&
+                        !transcriptionError &&
+                        !errorMessage &&
+                        !summaryError &&
+                        !summaryData && <div>아직 저장된 녹음이 없다.</div>}
                 </div>
             </div>
-            {isSummarizing && (
-                <div className="text-fuchsia-300">
-                    요약 중...
-                </div>
-            )}
-
-            {summaryError && (
-                <div className="break-all text-amber-300">
-                    요약 오류: {summaryError}
-                </div>
-            )}
-
-            {summaryData && (
-                <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-100 space-y-4">
-                    <div>
-                        <div className="text-xs uppercase tracking-wide text-zinc-500">제목</div>
-                        <div className="mt-1 text-base font-semibold">{summaryData.title}</div>
-                    </div>
-
-                    <div>
-                        <div className="text-xs uppercase tracking-wide text-zinc-500">요약</div>
-                        <div className="mt-1 whitespace-pre-wrap">{summaryData.summary}</div>
-                    </div>
-
-                    <div>
-                        <div className="text-xs uppercase tracking-wide text-zinc-500">핵심 포인트</div>
-                        <ul className="mt-2 list-disc space-y-1 pl-5">
-                            {summaryData.keyPoints.map((point) => (
-                                <li key={point}>{point}</li>
-                            ))}
-                        </ul>
-                    </div>
-
-                    <div>
-                        <div className="text-xs uppercase tracking-wide text-zinc-500">액션 아이템</div>
-                        {summaryData.actionItems.length === 0 ? (
-                            <div className="mt-2 text-zinc-400">추출된 액션 아이템이 없다.</div>
-                        ) : (
-                            <ul className="mt-2 space-y-2">
-                                {summaryData.actionItems.map((item, index) => (
-                                    <li
-                                        key={`${item.task}-${index}`}
-                                        className="rounded-lg border border-zinc-800 bg-zinc-950 p-3"
-                                    >
-                                        <div className="font-medium">{item.task}</div>
-                                        <div className="mt-1 text-xs text-zinc-400">
-                                            담당: {item.owner || '미정'} / 기한: {item.dueDate || '미정'}
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </div>
-
-                </div>
-            )}
-            {isSummarizing && (
-                <div className="text-fuchsia-300">
-                    요약 중...
-                </div>
-            )}
-
-            {summaryError && (
-                <div className="break-all text-amber-300">
-                    요약 오류: {summaryError}
-                </div>
-            )}
-
-            {summaryData && (
-                <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-100 space-y-4">
-                    <div>
-                        <div className="text-xs uppercase tracking-wide text-zinc-500">제목</div>
-                        <div className="mt-1 text-base font-semibold">{summaryData.title}</div>
-                    </div>
-
-                    <div>
-                        <div className="text-xs uppercase tracking-wide text-zinc-500">요약</div>
-                        <div className="mt-1 whitespace-pre-wrap">{summaryData.summary}</div>
-                    </div>
-
-                    <div>
-                        <div className="text-xs uppercase tracking-wide text-zinc-500">핵심 포인트</div>
-                        <ul className="mt-2 list-disc space-y-1 pl-5">
-                            {summaryData.keyPoints.map((point) => (
-                                <li key={point}>{point}</li>
-                            ))}
-                        </ul>
-                    </div>
-
-                    <div>
-                        <div className="text-xs uppercase tracking-wide text-zinc-500">액션 아이템</div>
-                        {summaryData.actionItems.length === 0 ? (
-                            <div className="mt-2 text-zinc-400">추출된 액션 아이템이 없다.</div>
-                        ) : (
-                            <ul className="mt-2 space-y-2">
-                                {summaryData.actionItems.map((item, index) => (
-                                    <li
-                                        key={`${item.task}-${index}`}
-                                        className="rounded-lg border border-zinc-800 bg-zinc-950 p-3"
-                                    >
-                                        <div className="font-medium">{item.task}</div>
-                                        <div className="mt-1 text-xs text-zinc-400">
-                                            담당: {item.owner || '미정'} / 기한: {item.dueDate || '미정'}
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </div>
-                </div>
-
-            )}{summaryFilePath && (
-                <div className="break-all text-sky-300">
-                    요약 파일: {summaryFilePath}
-                </div>
-            )}
-
         </section>
     );
 }
